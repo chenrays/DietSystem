@@ -4,10 +4,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI 智能飲食追蹤 (深色寶寶藍版)</title>
+    <title>AI 智能飲食追蹤 (深色寶寶藍修復版)</title>
     <style>
         :root {
-            /* 主色系：寶寶藍與深色模式 */
             --primary: #89CFF0;
             --primary-hover: #6CB4D4;
             --bg: #121212;
@@ -18,7 +17,6 @@
             --border: #444444;
             --error: #FF6B6B;
             --box-bg: #25333A;
-            /* 帶一點藍的深灰，呼應寶寶藍 */
             --advice-bg: #1A262E;
         }
 
@@ -80,7 +78,6 @@
             border-color: var(--primary);
         }
 
-        /* 讓 input[type="file"] 在深色模式好看一點 */
         input[type="file"]::file-selector-button {
             background-color: var(--primary);
             color: #121212;
@@ -99,7 +96,6 @@
         button {
             background-color: var(--primary);
             color: #121212;
-            /* 按鈕文字用深色，對比度更好 */
             border: none;
             font-weight: bold;
             cursor: pointer;
@@ -118,7 +114,7 @@
         }
 
         .hidden {
-            display: none;
+            display: none !important;
         }
 
         .grid-2 {
@@ -187,14 +183,12 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(18, 18, 18, 0.85);
-            /* 半透明深色遮罩 */
+            background: rgba(18, 18, 18, 0.9);
             display: flex;
             justify-content: center;
             align-items: center;
             z-index: 1000;
             flex-direction: column;
-            backdrop-filter: blur(3px);
         }
 
         .spinner {
@@ -223,6 +217,8 @@
     <div id="loading-overlay" class="hidden">
         <div class="spinner"></div>
         <p style="color: var(--primary); font-weight: bold; margin-top: 15px;">小奈正在用心分析中...</p>
+        <button id="cancel-loading-btn"
+            style="background: transparent; border: 1px solid var(--error); color: var(--error); width: auto; padding: 8px 20px; font-size: 0.9em; margin-top: 20px;">強制取消</button>
     </div>
 
     <div id="setup-section" class="card">
@@ -241,10 +237,10 @@
             <input type="number" id="weight" step="0.1" required>
             <label>每週運動次數</label>
             <select id="activity" required>
-                <option value="1.2">幾乎不運動 (0次)</option>
-                <option value="1.375">輕度運動 (1-3次)</option>
-                <option value="1.55">中度運動 (3-5次)</option>
-                <option value="1.725">高度運動 (6-7次)</option>
+                <option value="1.2">幾乎不運動</option>
+                <option value="1.375">輕度運動</option>
+                <option value="1.55">中度運動</option>
+                <option value="1.725">高度運動</option>
             </select>
             <label>目標體重 (kg)</label>
             <input type="number" id="target-weight" step="0.1" required>
@@ -258,9 +254,8 @@
         <h2>今日攝取狀態</h2>
         <div class="grid-2">
             <div class="stat-box" id="box-cal">
-                <span class="stat-label">剩餘 / 目標熱量 (kcal)</span>
-                <span id="remain-calories">0</span> <span id="display-calories"
-                    style="display:inline; font-size: 0.8em; color: var(--text-muted);">/ 0</span>
+                <span class="stat-label">剩餘熱量 (kcal)</span>
+                <span id="remain-calories">0</span>
             </div>
             <div class="stat-box"><span class="stat-label">碳水目標 (g)</span><span id="display-carbs">0</span></div>
             <div class="stat-box"><span class="stat-label">蛋白質目標 (g)</span><span id="display-protein">0</span></div>
@@ -273,36 +268,38 @@
         <form id="meal-form">
             <label>餐點照片 (必填)</label>
             <input type="file" id="meal-photo" accept="image/*" required>
-            <label>備註描述 (選填，更準確)</label>
+            <label>備註描述 (選填)</label>
             <textarea id="meal-notes" rows="2" placeholder="例如：飯一半、去冰微糖..."></textarea>
             <button type="submit" id="submit-meal-btn">上傳給小奈分析</button>
         </form>
 
         <h3 style="margin-top: 25px;">今日飲食明細</h3>
         <ul id="meal-list"></ul>
-
-        <div id="diet-advice" class="stat-box"
-            style="margin-top: 15px; background: var(--advice-bg); text-align: left; border-color: var(--primary);">
-            <strong style="color: var(--primary);">💡 小奈的飲食建議：</strong><br>
-            <span id="advice-text"
-                style="color: var(--text); font-size: 0.9em; font-weight: normal;">尚未有紀錄，趕快吃點健康的食物吧！</span>
-        </div>
-
         <button type="button" id="reset-btn"
             style="background-color: transparent; border: 1px solid var(--border); color: var(--text-muted); margin-top: 30px;">重新設定計畫
-            / 14天回報</button>
+            / 清除紀錄</button>
     </div>
 
     <script>
-        // === [設定區] ===
-        const GEMINI_API_KEY = "AIzaSyBVbEcw2vPQrbvGZtpp9FG3_q22UVRDVoo"; // 請將 API Key 貼在引號內
-        // ===============
+        // ==========================================
+        // 🚨 步驟 1：請將你的 API Key 貼在下方的引號內 🚨
+        // 注意：保留前後的「雙引號」，只要替換中間的字串就好喔！
+        // 錯誤示範：const GEMINI_API_KEY = AIzaSy... (少了引號會當機頻閃)
+        const GEMINI_API_KEY = "AIzaSyBVbEcw2vPQrbvGZtpp9FG3_q22UVRDVoo";
+        // ==========================================
 
         const setupSection = document.getElementById('setup-section');
         const dashboardSection = document.getElementById('dashboard-section');
         const setupForm = document.getElementById('setup-form');
         const mealForm = document.getElementById('meal-form');
         const loadingOverlay = document.getElementById('loading-overlay');
+        const cancelLoadingBtn = document.getElementById('cancel-loading-btn');
+
+        // 防卡死按鈕邏輯
+        cancelLoadingBtn.addEventListener('click', () => {
+            loadingOverlay.classList.add('hidden');
+            alert("已強制取消分析！");
+        });
 
         const todayStr = new Date().toISOString().slice(0, 10);
         let userData = JSON.parse(localStorage.getItem('diet_userData')) || null;
@@ -322,7 +319,10 @@
 
         setupForm.addEventListener('submit', function (e) {
             e.preventDefault();
-            if (!GEMINI_API_KEY) { alert("請先填入 API Key！"); return; }
+            if (!GEMINI_API_KEY || GEMINI_API_KEY === "請在這裡貼上你的API_KEY") {
+                alert("請先在程式碼中填入你申請的 Gemini API Key 喔！");
+                return;
+            }
 
             const gender = document.getElementById('gender').value;
             const age = parseInt(document.getElementById('age').value);
@@ -341,8 +341,7 @@
             const tdee = bmr * activity;
 
             const weightDiff = weight - targetWeight;
-            const totalDeficitNeeded = weightDiff * 7700;
-            const dailyDeficit = weightDiff > 0 ? (totalDeficitNeeded / daysDiff) : 0;
+            const dailyDeficit = weightDiff > 0 ? ((weightDiff * 7700) / daysDiff) : 0;
 
             let dailyCalories = Math.round(tdee - dailyDeficit);
             if (gender === 'F' && dailyCalories < 1200) dailyCalories = 1200;
@@ -364,8 +363,6 @@
 
         function updateDashboard() {
             const remainCal = userData.dailyCalories - todayIntake.calories;
-
-            document.getElementById('display-calories').innerText = userData.dailyCalories;
             document.getElementById('remain-calories').innerText = remainCal;
             document.getElementById('display-carbs').innerText = userData.carbs;
             document.getElementById('display-protein').innerText = userData.protein;
@@ -392,7 +389,6 @@
                     mealList.appendChild(li);
                 });
             }
-            generateAdvice();
         }
 
         function fileToGenerativePart(file) {
@@ -409,7 +405,7 @@
         mealForm.addEventListener('submit', async function (e) {
             e.preventDefault();
 
-            if (!GEMINI_API_KEY) { alert("還沒填入 API Key 喔！"); return; }
+            if (!GEMINI_API_KEY || GEMINI_API_KEY === "請在這裡貼上你的API_KEY") { alert("還沒填入 API Key 喔！"); return; }
             const photoFile = document.getElementById('meal-photo').files[0];
             const userNotes = document.getElementById('meal-notes').value || "無特別備註";
 
@@ -432,21 +428,16 @@
 
                 const data = await response.json();
 
-                // 檢查 API 是否有回傳錯誤 (例如 Key 錯了或是權限問題)
                 if (data.error) throw new Error(`API 錯誤: ${data.error.message}`);
                 if (!data.candidates) throw new Error("API 沒有回傳預期的資料");
 
                 let responseText = data.candidates[0].content.parts[0].text.trim();
-                console.log("Gemini 原始回傳 (解析前):", responseText); // 開發者除錯用
-
-                // 【關鍵修復】強制拔除 Markdown 的 ```json 與 ``` 標記
                 responseText = responseText.replace(/```json/gi, '').replace(/```/gi, '').trim();
 
                 let result;
                 try {
                     result = JSON.parse(responseText);
                 } catch (jsonErr) {
-                    console.error("JSON 解析失敗，過濾後的字串為:", responseText);
                     throw new Error("AI 回傳的格式有誤，請再試一次。");
                 }
 
@@ -481,36 +472,12 @@
                 console.error("發生錯誤:", error);
                 alert("分析失敗: " + error.message);
             } finally {
-                loadingOverlay.classList.add('hidden'); // 確保無論成功失敗，遮罩一定會關掉
+                loadingOverlay.classList.add('hidden');
             }
         });
 
-        function generateAdvice() {
-            const adviceEl = document.getElementById('advice-text');
-            const remainCal = userData.dailyCalories - todayIntake.calories;
-
-            if (todayIntake.meals.length === 0) {
-                adviceEl.innerText = "美好的開始！記得攝取足夠的水分和蛋白質喔。";
-                return;
-            }
-
-            let advice = "";
-            if (remainCal < -100) {
-                advice = `今日熱量攝取已超標 ${Math.abs(remainCal)} kcal。建議接下來選擇清淡、高纖維的食物，並多散步消耗熱量。`;
-            } else if (remainCal >= 0 && remainCal < 300) {
-                advice = `熱量額度快用完囉（剩餘 ${remainCal} kcal）。若餓了建議選擇純蛋白質（如茶葉蛋）。`;
-            } else {
-                if (todayIntake.protein < (userData.protein * 0.8)) {
-                    advice = `還有 ${remainCal} kcal。目前蛋白質偏少，下一餐建議補充雞胸肉、豆腐或無糖豆漿！`;
-                } else {
-                    advice = `目前的飲食節奏不錯，繼續保持！`;
-                }
-            }
-            adviceEl.innerText = advice;
-        }
-
         document.getElementById('reset-btn').addEventListener('click', () => {
-            if (confirm('確定要重新設定計畫或進行 14 天回報嗎？目前的進度會被清除喔！')) {
+            if (confirm('確定要重新設定計畫嗎？目前的進度會被清除喔！')) {
                 localStorage.removeItem('diet_userData');
                 localStorage.removeItem('diet_todayIntake');
                 location.reload();
