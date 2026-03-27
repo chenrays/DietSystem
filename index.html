@@ -4,14 +4,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI 智能飲食追蹤 (Gemini 實作版)</title>
+    <title>AI 智能飲食追蹤 (深色寶寶藍版)</title>
     <style>
         :root {
-            --primary: #4CAF50;
-            --bg: #f4f7f6;
-            --card-bg: #ffffff;
-            --text: #333;
-            --error: #f44336;
+            /* 主色系：寶寶藍與深色模式 */
+            --primary: #89CFF0;
+            --primary-hover: #6CB4D4;
+            --bg: #121212;
+            --card-bg: #1E1E1E;
+            --text: #E0E0E0;
+            --text-muted: #9E9E9E;
+            --input-bg: #2C2C2C;
+            --border: #444444;
+            --error: #FF6B6B;
+            --box-bg: #25333A;
+            /* 帶一點藍的深灰，呼應寶寶藍 */
+            --advice-bg: #1A262E;
         }
 
         body {
@@ -28,8 +36,9 @@
             background: var(--card-bg);
             padding: 20px;
             border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
             margin-bottom: 20px;
+            border: 1px solid #333;
         }
 
         h1,
@@ -45,6 +54,7 @@
             margin-top: 15px;
             font-weight: bold;
             font-size: 0.9em;
+            color: var(--text-muted);
         }
 
         input,
@@ -55,10 +65,31 @@
             padding: 12px;
             margin-top: 5px;
             border-radius: 8px;
-            border: 1px solid #ddd;
+            border: 1px solid var(--border);
             box-sizing: border-box;
             font-size: 16px;
-            /* 防止 iOS input 放大 */
+            background-color: var(--input-bg);
+            color: var(--text);
+            transition: border-color 0.3s;
+        }
+
+        input:focus,
+        select:focus,
+        textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        /* 讓 input[type="file"] 在深色模式好看一點 */
+        input[type="file"]::file-selector-button {
+            background-color: var(--primary);
+            color: #121212;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            margin-right: 10px;
         }
 
         textarea {
@@ -67,7 +98,8 @@
 
         button {
             background-color: var(--primary);
-            color: white;
+            color: #121212;
+            /* 按鈕文字用深色，對比度更好 */
             border: none;
             font-weight: bold;
             cursor: pointer;
@@ -76,12 +108,13 @@
         }
 
         button:hover {
-            background-color: #45a049;
+            background-color: var(--primary-hover);
         }
 
         button:disabled {
-            background-color: #a5d6a7;
+            background-color: #4A6E7D;
             cursor: not-allowed;
+            color: #888;
         }
 
         .hidden {
@@ -95,14 +128,16 @@
         }
 
         .stat-box {
-            background: #e8f5e9;
+            background: var(--box-bg);
             padding: 12px;
             border-radius: 8px;
             text-align: center;
+            border: 1px solid #2A3B45;
         }
 
         .stat-box.over {
-            background: #ffebee;
+            background: rgba(255, 107, 107, 0.1);
+            border-color: var(--error);
         }
 
         .stat-box.over span {
@@ -118,12 +153,11 @@
 
         .stat-label {
             font-size: 0.8em;
-            color: #666;
+            color: var(--text-muted);
             margin-bottom: 4px;
             display: block;
         }
 
-        /* 飲食紀錄列表樣式 */
         #meal-list {
             list-style: none;
             padding: 0;
@@ -131,16 +165,19 @@
         }
 
         #meal-list li {
-            background: #f9f9f9;
-            border-bottom: 1px solid #eee;
-            padding: 10px;
+            background: var(--input-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px;
             font-size: 0.9em;
+            margin-bottom: 8px;
         }
 
         .meal-time {
-            color: #888;
+            color: var(--primary);
             font-size: 0.8em;
             margin-right: 5px;
+            font-weight: bold;
         }
 
         /* 全域載入遮罩 */
@@ -150,20 +187,22 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(255, 255, 255, 0.8);
+            background: rgba(18, 18, 18, 0.85);
+            /* 半透明深色遮罩 */
             display: flex;
             justify-content: center;
             align-items: center;
             z-index: 1000;
             flex-direction: column;
+            backdrop-filter: blur(3px);
         }
 
         .spinner {
-            border: 4px solid #f3f3f3;
+            border: 4px solid var(--border);
             border-top: 4px solid var(--primary);
             border-radius: 50%;
-            width: 30px;
-            height: 30px;
+            width: 40px;
+            height: 40px;
             animation: spin 1s linear infinite;
         }
 
@@ -183,12 +222,11 @@
 
     <div id="loading-overlay" class="hidden">
         <div class="spinner"></div>
-        <p style="color: var(--primary); font-weight: bold;">Gemini 正在用力分析中...</p>
+        <p style="color: var(--primary); font-weight: bold; margin-top: 15px;">小奈正在用心分析中...</p>
     </div>
 
     <div id="setup-section" class="card">
-        <h2>建立你的專屬計畫</h2>
-        <p style="font-size: 0.8em; color: #666; text-align:center;">我們將以此計算你的 TDEE 與目標</p>
+        <h2>建立專屬計畫</h2>
         <form id="setup-form">
             <label>性別</label>
             <select id="gender" required>
@@ -196,17 +234,17 @@
                 <option value="F">女</option>
             </select>
             <div class="grid-2">
-                <div><label>年齡 (歲)</label><input type="number" id="age" placeholder="例如: 25" required></div>
-                <div><label>身高 (cm)</label><input type="number" id="height" placeholder="例如: 170" required></div>
+                <div><label>年齡 (歲)</label><input type="number" id="age" required></div>
+                <div><label>身高 (cm)</label><input type="number" id="height" required></div>
             </div>
             <label>目前體重 (kg)</label>
-            <input type="number" id="weight" step="0.1" placeholder="例如: 65.5" required>
-            <label>每週運動次數 (活動係數)</label>
+            <input type="number" id="weight" step="0.1" required>
+            <label>每週運動次數</label>
             <select id="activity" required>
-                <option value="1.2">幾乎不運動 (久坐)</option>
-                <option value="1.375">輕度運動 (1-3次/週)</option>
-                <option value="1.55">中度運動 (3-5次/週)</option>
-                <option value="1.725">高度運動 (6-7次/週)</option>
+                <option value="1.2">幾乎不運動 (0次)</option>
+                <option value="1.375">輕度運動 (1-3次)</option>
+                <option value="1.55">中度運動 (3-5次)</option>
+                <option value="1.725">高度運動 (6-7次)</option>
             </select>
             <label>目標體重 (kg)</label>
             <input type="number" id="target-weight" step="0.1" required>
@@ -221,74 +259,70 @@
         <div class="grid-2">
             <div class="stat-box" id="box-cal">
                 <span class="stat-label">剩餘 / 目標熱量 (kcal)</span>
-                <span id="remain-calories">0</span> / <span id="display-calories"
-                    style="display:inline; font-size: 1em; color: #666;">0</span>
+                <span id="remain-calories">0</span> <span id="display-calories"
+                    style="display:inline; font-size: 0.8em; color: var(--text-muted);">/ 0</span>
             </div>
-            <div class="stat-box"><span class="stat-label">碳水化合物目標 (g)</span><span id="display-carbs">0</span></div>
+            <div class="stat-box"><span class="stat-label">碳水目標 (g)</span><span id="display-carbs">0</span></div>
             <div class="stat-box"><span class="stat-label">蛋白質目標 (g)</span><span id="display-protein">0</span></div>
             <div class="stat-box"><span class="stat-label">脂肪目標 (g)</span><span id="display-fat">0</span></div>
             <div class="stat-box"><span class="stat-label">建議飲水量 (ml)</span><span id="display-water">0</span></div>
             <div class="stat-box"><span class="stat-label">建議步數 (步)</span><span id="display-steps">0</span></div>
         </div>
 
-        <h3 style="margin-top: 25px;">新增飲食紀錄 (拍照+備註)</h3>
+        <h3 style="margin-top: 25px;">新增飲食紀錄</h3>
         <form id="meal-form">
             <label>餐點照片 (必填)</label>
             <input type="file" id="meal-photo" accept="image/*" required>
             <label>備註描述 (選填，更準確)</label>
-            <textarea id="meal-notes" rows="2" placeholder="例如：飯一半、去冰微糖、大碗..."></textarea>
-            <button type="submit" id="submit-meal-btn">透過 Gemini AI 分析</button>
+            <textarea id="meal-notes" rows="2" placeholder="例如：飯一半、去冰微糖..."></textarea>
+            <button type="submit" id="submit-meal-btn">上傳給小奈分析</button>
         </form>
 
         <h3 style="margin-top: 25px;">今日飲食明細</h3>
-        <ul id="meal-list">
-        </ul>
+        <ul id="meal-list"></ul>
 
-        <div id="diet-advice" class="stat-box" style="margin-top: 15px; background: #fff3e0; text-align: left;">
-            <strong>💡 小奈的飲食建議：</strong><br>
-            <span id="advice-text">尚未有紀錄，趕快吃點健康的食物吧！</span>
+        <div id="diet-advice" class="stat-box"
+            style="margin-top: 15px; background: var(--advice-bg); text-align: left; border-color: var(--primary);">
+            <strong style="color: var(--primary);">💡 小奈的飲食建議：</strong><br>
+            <span id="advice-text"
+                style="color: var(--text); font-size: 0.9em; font-weight: normal;">尚未有紀錄，趕快吃點健康的食物吧！</span>
         </div>
 
-        <button id="reset-btn" style="background-color: #9e9e9e; margin-top: 30px;">重新設定計畫 / 14天回報</button>
+        <button type="button" id="reset-btn"
+            style="background-color: transparent; border: 1px solid var(--border); color: var(--text-muted); margin-top: 30px;">重新設定計畫
+            / 14天回報</button>
     </div>
 
     <script>
         // === [設定區] ===
-        // 請在此處填入你的 Google AI Studio API Key
-        const GEMINI_API_KEY = "AIzaSyBVbEcw2vPQrbvGZtpp9FG3_q22UVRDVoo";
+        const GEMINI_API_KEY = "AIzaSyBVbEcw2vPQrbvGZtpp9FG3_q22UVRDVoo"; // 請將 API Key 貼在引號內
         // ===============
 
-        // DOM 元素
         const setupSection = document.getElementById('setup-section');
         const dashboardSection = document.getElementById('dashboard-section');
         const setupForm = document.getElementById('setup-form');
         const mealForm = document.getElementById('meal-form');
         const loadingOverlay = document.getElementById('loading-overlay');
 
-        // 使用者資料與今日累計資料 (加上日期鎖定，隔天自動重置)
         const todayStr = new Date().toISOString().slice(0, 10);
         let userData = JSON.parse(localStorage.getItem('diet_userData')) || null;
         let storedIntake = JSON.parse(localStorage.getItem('diet_todayIntake')) || { date: todayStr, calories: 0, carbs: 0, protein: 0, fat: 0, meals: [] };
 
-        // 如果 localStorage 的紀錄是舊的，就重置
         if (storedIntake.date !== todayStr) {
             storedIntake = { date: todayStr, calories: 0, carbs: 0, protein: 0, fat: 0, meals: [] };
             localStorage.setItem('diet_todayIntake', JSON.stringify(storedIntake));
         }
         let todayIntake = storedIntake;
 
-        // 初始化檢查
         if (userData) {
             setupSection.classList.add('hidden');
             dashboardSection.classList.remove('hidden');
             updateDashboard();
         }
 
-        // --- 功能 1: 初始資料設定與 TDEE 計算 ---
         setupForm.addEventListener('submit', function (e) {
             e.preventDefault();
-
-            if (!GEMINI_API_KEY) { alert("請先在程式碼中填入 Gemini API Key！"); return; }
+            if (!GEMINI_API_KEY) { alert("請先填入 API Key！"); return; }
 
             const gender = document.getElementById('gender').value;
             const age = parseInt(document.getElementById('age').value);
@@ -302,24 +336,18 @@
             const daysDiff = Math.ceil((targetDate - today) / (1000 * 60 * 60 * 24));
             if (daysDiff <= 0) { alert("目標日期必須在未來喔！"); return; }
 
-            // 計算 BMR (Mifflin-St Jeor)
             let bmr = (10 * weight) + (6.25 * height) - (5 * age);
             bmr += (gender === 'M') ? 5 : -161;
-
-            // 計算 TDEE
             const tdee = bmr * activity;
 
-            // 計算熱量赤字 (預估)
             const weightDiff = weight - targetWeight;
-            const totalDeficitNeeded = weightDiff * 7700; // 1kg fat approx 7700kcal
+            const totalDeficitNeeded = weightDiff * 7700;
             const dailyDeficit = weightDiff > 0 ? (totalDeficitNeeded / daysDiff) : 0;
 
-            // 每日目標熱量
             let dailyCalories = Math.round(tdee - dailyDeficit);
-            if (gender === 'F' && dailyCalories < 1200) dailyCalories = 1200; // 女性安全底線
-            if (gender === 'M' && dailyCalories < 1500) dailyCalories = 1500; // 男性安全底線
+            if (gender === 'F' && dailyCalories < 1200) dailyCalories = 1200;
+            if (gender === 'M' && dailyCalories < 1500) dailyCalories = 1500;
 
-            // 營養素分配 (碳水 45%, 蛋白質 25%, 脂肪 30%) - 稍微調整更適合大眾減脂
             const carbs = Math.round((dailyCalories * 0.45) / 4);
             const protein = Math.round((dailyCalories * 0.25) / 4);
             const fat = Math.round((dailyCalories * 0.30) / 9);
@@ -334,7 +362,6 @@
             updateDashboard();
         });
 
-        // --- 功能 2: 更新儀表板 UI ---
         function updateDashboard() {
             const remainCal = userData.dailyCalories - todayIntake.calories;
 
@@ -346,111 +373,93 @@
             document.getElementById('display-water').innerText = userData.water;
             document.getElementById('display-steps').innerText = userData.steps;
 
-            // 熱量爆表變色
             if (remainCal < 0) {
                 document.getElementById('box-cal').classList.add('over');
             } else {
                 document.getElementById('box-cal').classList.remove('over');
             }
 
-            // 更新飲食清單
             const mealList = document.getElementById('meal-list');
             mealList.innerHTML = '';
             if (todayIntake.meals.length === 0) {
-                mealList.innerHTML = '<li style="text-align:center; color:#999;">今日尚無紀錄</li>';
+                mealList.innerHTML = '<li style="text-align:center; border:none; color:var(--text-muted);">今日尚無紀錄</li>';
             } else {
                 todayIntake.meals.forEach(meal => {
                     const li = document.createElement('li');
-                    const timeStr = meal.time || "";
-                    li.innerHTML = `<span class="meal-time">${timeStr}</span> <strong>${meal.aiDescr}</strong> <br> (備註: ${meal.userNotes}) <br> 
+                    li.innerHTML = `<span class="meal-time">${meal.time}</span> <strong>${meal.aiDescr}</strong> 
+                                    <div style="color:var(--text-muted); font-size:0.85em; margin: 4px 0;">備註: ${meal.userNotes}</div> 
                                     <span style="color:var(--primary); font-weight:bold;">${meal.calories} kcal</span> | 碳:${meal.carbs}g | 蛋:${meal.protein}g | 脂:${meal.fat}g`;
                     mealList.appendChild(li);
                 });
             }
-
             generateAdvice();
         }
 
-        // --- 功能 3: 圖片轉 Base64 輔助函式 ---
         function fileToGenerativePart(file) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
                 reader.onloadend = () => resolve({
-                    inlineData: {
-                        data: reader.result.split(',')[1],
-                        mimeType: file.type
-                    },
+                    inlineData: { data: reader.result.split(',')[1], mimeType: file.type }
                 });
                 reader.onerror = reject;
                 reader.readAsDataURL(file);
             });
         }
 
-        // --- 功能 4: 呼叫真實 Gemini API 並處理結果 ---
         mealForm.addEventListener('submit', async function (e) {
             e.preventDefault();
 
-            if (!GEMINI_API_KEY) { alert("請先填入 API Key"); return; }
+            if (!GEMINI_API_KEY) { alert("還沒填入 API Key 喔！"); return; }
             const photoFile = document.getElementById('meal-photo').files[0];
             const userNotes = document.getElementById('meal-notes').value || "無特別備註";
 
             if (!photoFile) { alert("請選擇餐點照片"); return; }
 
-            loadingOverlay.classList.remove('hidden'); // 顯示載入遮罩
+            loadingOverlay.classList.remove('hidden');
 
             try {
-                // 1. 準備圖片資料
                 const imagePart = await fileToGenerativePart(photoFile);
-
-                // 2. 建立專門針對營養分析的 Prompt
-                const prompt = `你是一位專業的營養師。請分析這張圖片中的食物，並參考使用者的備註：「${userNotes}」。
+                const prompt = `你是一位專業的營養師。請分析這張圖片中的食物，並參考備註：「${userNotes}」。
                 請估算這頓餐點的熱量(kcal)以及三大營養素：碳水化合物(g)、蛋白質(g)、脂肪(g)。
-                
-                請務必以嚴格的 JSON 格式回傳，不要包含任何 Markdown 標記 (如 \`\`\`json) 或其他文字。
-                JSON 格式範例：
-                {"mealDescription": "辨識出的食物簡短名稱", "calories": 500, "carbs": 60, "protein": 20, "fat": 20}
-                
-                如果圖片內容顯然不是食物，請回傳：
-                {"error": "無法辨識為食物"}
-                `;
+                請務必以嚴格的 JSON 格式回傳，不要包含任何 Markdown 標記 (如 \`\`\`json)。
+                範例：{"mealDescription": "辨識結果", "calories": 500, "carbs": 60, "protein": 20, "fat": 20}`;
 
-                // 3. 呼叫 Gemini Pro Vision API (或最新的 gemini-1.5-flash)
                 const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contents: [{ parts: [{ text: prompt }, imagePart] }]
-                    })
+                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }, imagePart] }] })
                 });
 
                 const data = await response.json();
 
-                // 4. 解析 API 回傳的文字
-                if (!data.candidates || data.candidates.length === 0) throw new Error("API 無回傳內容");
+                // 檢查 API 是否有回傳錯誤 (例如 Key 錯了或是權限問題)
+                if (data.error) throw new Error(`API 錯誤: ${data.error.message}`);
+                if (!data.candidates) throw new Error("API 沒有回傳預期的資料");
 
-                const responseText = data.candidates[0].content.parts[0].text.trim();
+                let responseText = data.candidates[0].content.parts[0].text.trim();
+                console.log("Gemini 原始回傳 (解析前):", responseText); // 開發者除錯用
 
-                // 5. 將 JSON 字串轉為 JS 物件
+                // 【關鍵修復】強制拔除 Markdown 的 ```json 與 ``` 標記
+                responseText = responseText.replace(/```json/gi, '').replace(/```/gi, '').trim();
+
                 let result;
                 try {
                     result = JSON.parse(responseText);
                 } catch (jsonErr) {
-                    console.error("JSON 解析失敗:", responseText);
-                    throw new Error("AI 回傳格式異常，請重試");
+                    console.error("JSON 解析失敗，過濾後的字串為:", responseText);
+                    throw new Error("AI 回傳的格式有誤，請再試一次。");
                 }
 
-                // 6. 處理錯誤或更新資料
                 if (result.error) {
-                    alert("Gemini 說：" + result.error);
+                    alert("小奈說：" + result.error);
                 } else {
                     const now = new Date();
                     const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
 
-                    // 新增到紀錄
                     const newMeal = {
                         time: timeStr,
                         userNotes: userNotes,
-                        aiDescr: result.mealDescription,
+                        aiDescr: result.mealDescription || "未知餐點",
                         calories: parseInt(result.calories) || 0,
                         carbs: parseInt(result.carbs) || 0,
                         protein: parseInt(result.protein) || 0,
@@ -465,23 +474,21 @@
 
                     localStorage.setItem('diet_todayIntake', JSON.stringify(todayIntake));
                     updateDashboard();
-                    mealForm.reset(); // 清空表單
+                    mealForm.reset();
                 }
 
             } catch (error) {
                 console.error("發生錯誤:", error);
                 alert("分析失敗: " + error.message);
             } finally {
-                loadingOverlay.classList.add('hidden'); // 隱藏載入遮罩
+                loadingOverlay.classList.add('hidden'); // 確保無論成功失敗，遮罩一定會關掉
             }
         });
 
-        // --- 功能 5: 動態飲食建議 ---
         function generateAdvice() {
             const adviceEl = document.getElementById('advice-text');
             const remainCal = userData.dailyCalories - todayIntake.calories;
 
-            // 簡單的邏輯判斷
             if (todayIntake.meals.length === 0) {
                 adviceEl.innerText = "美好的開始！記得攝取足夠的水分和蛋白質喔。";
                 return;
@@ -489,23 +496,21 @@
 
             let advice = "";
             if (remainCal < -100) {
-                advice = `今日熱量攝取已超標 ${Math.abs(remainCal)} kcal。建議接下來的餐點選擇清淡、高纖維的食物，並多走路消耗熱量。`;
+                advice = `今日熱量攝取已超標 ${Math.abs(remainCal)} kcal。建議接下來選擇清淡、高纖維的食物，並多散步消耗熱量。`;
             } else if (remainCal >= 0 && remainCal < 300) {
-                advice = `熱量額度快用完囉（剩餘 ${remainCal} kcal）。若還要進食，建議選擇小份量的純蛋白質食物（如蛋白、干貝）。`;
+                advice = `熱量額度快用完囉（剩餘 ${remainCal} kcal）。若餓了建議選擇純蛋白質（如茶葉蛋）。`;
             } else {
-                // 檢查蛋白質是否足夠 (假設目標的 80% 為及格)
                 if (todayIntake.protein < (userData.protein * 0.8)) {
-                    advice = `你還有 ${remainCal} kcal 額度。目前蛋白質攝取偏少，下一餐建議補充雞胸肉、魚類、豆製品或蛋。`;
+                    advice = `還有 ${remainCal} kcal。目前蛋白質偏少，下一餐建議補充雞胸肉、豆腐或無糖豆漿！`;
                 } else {
-                    advice = `目前的飲食節奏不錯，剩餘熱量 ${remainCal} kcal。繼續保持，記得也要補充蔬菜喔！`;
+                    advice = `目前的飲食節奏不錯，繼續保持！`;
                 }
             }
             adviceEl.innerText = advice;
         }
 
-        // 重置計畫 / 14天回報
         document.getElementById('reset-btn').addEventListener('click', () => {
-            if (confirm('要重新設定計畫，或進行「14天體重回報與調整」嗎？(目前的紀錄將會清除)')) {
+            if (confirm('確定要重新設定計畫或進行 14 天回報嗎？目前的進度會被清除喔！')) {
                 localStorage.removeItem('diet_userData');
                 localStorage.removeItem('diet_todayIntake');
                 location.reload();
